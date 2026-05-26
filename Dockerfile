@@ -11,3 +11,4 @@ ENV PATH=/opt/conda/bin:$PATH
 
 CMD ["bedGraphToBigWig"]
 
+
