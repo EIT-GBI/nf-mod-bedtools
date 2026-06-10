@@ -19,12 +19,4 @@ process BIGWIG {
         echo "No coverage records for ${sample} — skipping bigwig"
     fi
     """
-
-    stub:
-    """
-    which bedtools && bedtools --version
-    which bedGraphToBigWig && bedGraphToBigWig 2>&1 | head -1 || true
-    echo "chrom_sizes path visible: ${chrom_sizes}" && ls "${chrom_sizes}"
-    touch ${sample}.${label}.bw
-    """
 }
