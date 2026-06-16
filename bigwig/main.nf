@@ -19,4 +19,9 @@ process BEDTOOLS_BIGWIG {
         echo "No coverage records for ${sample} — skipping bigwig"
     fi
     """
+
+    stub:
+    """
+    touch ${sample}.${label}.bw
+    """
 }
