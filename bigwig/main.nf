@@ -11,7 +11,7 @@ process BEDTOOLS_BIGWIG {
 
     script:
     """
-    set -euo pipefail
+    set -euo pipefaild
     bedtools genomecov -ibam ${bam} -bg | sort -k1,1 -k2,2n > tmp.bg
     if [ -s tmp.bg ]; then
         bedGraphToBigWig tmp.bg ${chrom_sizes} ${sample}.${label}.bw
