@@ -1,7 +1,7 @@
 process BEDTOOLS_BIGWIG {
     tag "${sample}/${label}"
-    publishDir "${params.alignment.outdir}/bigwig", mode: 'link'
-
+    publishDir "${params.outdir}/bigwig", mode: 'link'
+ 
     input:
     tuple val(sample), val(label), path(bam), path(bai)
     val chrom_sizes
