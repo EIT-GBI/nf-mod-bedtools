@@ -1,4 +1,4 @@
-process BIGWIG {
+process BEDTOOLS_BIGWIG {
     tag "${sample}/${label}"
     publishDir "${params.alignment.outdir}/bigwig", mode: 'link'
 
