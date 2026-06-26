@@ -1,27 +1,29 @@
 process BEDTOOLS_BIGWIG {
-    tag "${sample}/${label}"
+    tag "${meta.id}"
+
     publishDir "${params.outdir}/bigwig", mode: 'link'
  
     input:
-    tuple val(sample), val(label), path(bam), path(bai)
-    val chrom_sizes
+    tuple val(meta), path(bam), path(bai)
+    tuple path(fasta), path(fai)
 
     output:
-    path "${sample}.${label}.bw", optional: true
+    tuple val(meta), path("${meta.id}.bw"), emit: bigwig
 
     script:
     """
-    set -euo pipefaild
-    bedtools genomecov -ibam ${bam} -bg | sort -k1,1 -k2,2n > tmp.bg
-    if [ -s tmp.bg ]; then
-        bedGraphToBigWig tmp.bg ${chrom_sizes} ${sample}.${label}.bw
+    set -euo pipefail
+    cut -f1,2 ${fai} > chrom_sizes
+    bedtools genomecov -ibam ${bam} -bg | sort -k1,1 -k2,2n > coverage.bg
+    if [ -s coverage.bg ]; then
+        bedGraphToBigWig coverage.bg chrom_sizes ${meta.id}.bw
     else
-        echo "No coverage records for ${sample} — skipping bigwig"
+        echo "No coverage records for ${meta.id} — skipping bigwig"
     fi
     """
 
     stub:
     """
-    touch ${sample}.${label}.bw
+    touch ${meta.id}.bw
     """
 }
