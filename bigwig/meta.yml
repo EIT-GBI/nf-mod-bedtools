@@ -1,0 +1,33 @@
+name: bedtools_bigwig
+description: |
+  Per-base coverage track in bigWig format.
+keywords:
+  - coverage
+  - bigwig
+  - bedtools
+tools:
+  - bedtools:
+      description: |
+        bedtools + UCSC bedGraphToBigWig
+
+input:
+  - bam:
+      type: map/file
+      description: |
+        Sample metadata map, BAM and its index.
+      pattern: "tuple val(meta), path(bam), path(bai)"
+  - fasta:
+      type: map/file
+      description: |
+        Reference FASTA and its .fai index.
+      pattern: "tuple path(fasta), path(fai)"
+
+output:
+  - bigwig:
+      type: map/file
+      description: |
+        Coverage track.
+      pattern: "tuple val(meta), path(*.bw)"
+
+authors:
+  - "EIT Generative Biology Institute"
