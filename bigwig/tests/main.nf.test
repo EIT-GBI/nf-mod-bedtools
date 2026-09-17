@@ -4,6 +4,11 @@ nextflow_process {
     script "../main.nf"
     process "BEDTOOLS_BIGWIG"
 
+    def TEST_BAM = 'file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam", checkIfExists: true)'
+    def TEST_BAI = 'file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam.bai", checkIfExists: true)'
+    def TEST_FA  = 'file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/genome/genome.fasta", checkIfExists: true)'
+    def TEST_FAI = 'file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/genome/genome.fasta.fai", checkIfExists: true)'
+
     test("BEDTOOLS_BIGWIG - stub - wiring and output names") {
 
         options "-stub-run"
@@ -11,8 +16,8 @@ nextflow_process {
         when {
             process {
                 """
-                input[0] = [[id:'test'], file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam", checkIfExists: true), file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam.bai", checkIfExists: true)]
-                input[1] = [file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/genome/genome.fasta", checkIfExists: true), file("https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2/genome/genome.fasta.fai", checkIfExists: true)]
+                input[0] = [[id:'test'], ${TEST_BAM}, ${TEST_BAI}]
+                input[1] = [${TEST_FA}, ${TEST_FAI}]
                 """
             }
         }
@@ -20,6 +25,33 @@ nextflow_process {
         then {
             assert process.success
             assert process.out.bigwig
+        }
+    }
+
+    test("BEDTOOLS_BIGWIG - builds a coverage track from an aligned BAM") {
+
+        config "../../tests.config"
+
+        when {
+            process {
+                """
+                input[0] = [[id:'test'], ${TEST_BAM}, ${TEST_BAI}]
+                input[1] = [${TEST_FA}, ${TEST_FAI}]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+
+            def bw = path(process.out.bigwig[0][1])
+
+            assert file(bw.toString()).name == 'test.bw'
+            // bigWig starts with its own magic number, so this catches an empty
+            // or truncated file rather than merely a present one
+            assert bw.bytes[0..3] == [0x26, 0xFC, 0x8F, 0x88] as byte[]
+            // bedGraphToBigWig is deterministic and writes no timestamp
+            assert snapshot(process.out.bigwig).match()
         }
     }
 }

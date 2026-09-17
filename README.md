@@ -64,6 +64,26 @@ include { BEDTOOLS_BIGWIG } from './modules/bedtools/bigwig/main.nf'
 
 Nextflow 26.04.4 or newer.
 
+## Tests
+
+`nf-test test`. There is a stub test covering wiring and output names, and a
+test that runs bedtools and `bedGraphToBigWig` for real against
+`ghcr.io/eit-gbi/nf-mod-bedtools:latest` and snapshots the track it produces.
+The real test needs Docker.
+
+`bedGraphToBigWig` is deterministic and writes no timestamp, so the bigWig is
+snapshotted directly. The test also checks the bigWig magic number, so a
+truncated or empty file fails rather than merely being present.
+
+### Known limitation
+
+`BEDTOOLS_BIGWIG` fails when the input BAM has no aligned reads. The script
+guards for an empty bedGraph and prints a message instead of writing the track,
+but `bigwig` is a required output, so Nextflow then fails the task with a
+missing output file. The guard cannot work as written: either the output needs
+to be `optional: true`, or the branch has to produce a file. There is no test
+for this, because a test would only pin down behaviour that is not intended.
+
 ## Releasing
 
 Merging a PR to `main` with exactly one `bump:patch`, `bump:minor` or
