@@ -1,7 +1,6 @@
 process BEDTOOLS_BIGWIG {
     tag "${meta.id}"
 
-    publishDir "${params.outdir}/bigwig", mode: 'link'
  
     input:
     tuple val(meta), path(bam), path(bai)

@@ -1,21 +1,91 @@
 # nf-mod-bedtools
 
-Nextflow module for bedtools + ucsc-bedGraphToBigWig. Used as a git submodule by pipelines.
+Nextflow module for bedtools + UCSC bedGraphToBigWig (coverage tracks). Used as a git submodule by pipelines.
 
-Image: `ghcr.io/eit-gbi/nf-mod-bedtools:latest`
+Image: `ghcr.io/eit-gbi/nf-mod-bedtools:v0.0.0`
 
-## :gear: Processes
+## Processes
 
-- `BIGWIG` ([bigwig/main.nf](bigwig/main.nf)) — inputs: `tuple(sample, label, bam, bai)` + `val chrom_sizes` → output: `path ${sample}.${label}.bw` (optional)
+Each subtool lives in its own folder (nf-core style), with a `main.nf`, a
+`meta.yml` and an nf-test case under `tests/`.
 
-Generates a coverage bigWig from an indexed BAM via `bedtools genomecov -bg` piped into `bedGraphToBigWig`. The intermediate bedGraph stays inside the Nextflow work dir — only the final bigWig is published. Empty-coverage samples are skipped.
+| Process | Path | Inputs | Emits |
+| --- | --- | --- | --- |
+| `BEDTOOLS_BIGWIG` | `bigwig/main.nf` | `tuple val(meta), path(bam), path(bai)`<br>`tuple path(fasta), path(fai)` | `bigwig` |
 
-## :hammer_and_wrench: Use as submodule
+## Publishing
+
+These processes do **not** publish their own outputs. Publishing is the
+consuming pipeline's job, via a workflow `output {}` block. This keeps the
+module reusable across pipelines that want different result layouts.
+
+## Tool arguments
+
+Flags are passed through `task.ext.args` (and `args2`/`args3` where a process
+runs more than one command) rather than read from pipeline `params`, so the
+module never depends on a particular pipeline's parameter names:
+
+```groovy
+process {
+    withName: BEDTOOLS_BIGWIG {
+        ext.args = '--some-flag'
+    }
+}
+```
+
+## Use as submodule
+
+Pin to a release tag rather than a branch, so pipeline runs stay reproducible:
+
 ```bash
-git submodule add https://github.com/eit-gbi/nf-mod-bedtools.git modules/bedtools
+git submodule add https://github.com/EIT-GBI/nf-mod-bedtools.git modules/bedtools
+git -C modules/bedtools checkout v0.0.0
 ```
 
-Then in your pipeline:
+Then include the module's container config from your `nextflow.config`. Nextflow
+does not read a submodule's config on its own, so without this line the
+processes have no image:
+
+```groovy
+includeConfig 'modules/bedtools/conf/module.config'
 ```
-include { BIGWIG } from './modules/bedtools/bigwig/main.nf'
+
+`conf/module.config` pins the image to the version built from this same commit,
+and carries no `manifest {}` block, so it will not overwrite your pipeline's
+own manifest. Override it in your pipeline with a `withName` selector if needed.
+
+And include the processes:
+
+```groovy
+include { BEDTOOLS_BIGWIG } from './modules/bedtools/bigwig/main.nf'
 ```
+
+## Requirements
+
+Nextflow 26.04.4 or newer.
+
+## Tests
+
+`nf-test test`. There is a stub test covering wiring and output names, and a
+test that runs bedtools and `bedGraphToBigWig` for real against
+`ghcr.io/eit-gbi/nf-mod-bedtools:latest` and snapshots the track it produces.
+The real test needs Docker.
+
+`bedGraphToBigWig` is deterministic and writes no timestamp, so the bigWig is
+snapshotted directly. The test also checks the bigWig magic number, so a
+truncated or empty file fails rather than merely being present.
+
+### Known limitation
+
+`BEDTOOLS_BIGWIG` fails when the input BAM has no aligned reads. The script
+guards for an empty bedGraph and prints a message instead of writing the track,
+but `bigwig` is a required output, so Nextflow then fails the task with a
+missing output file. The guard cannot work as written: either the output needs
+to be `optional: true`, or the branch has to produce a file. There is no test
+for this, because a test would only pin down behaviour that is not intended.
+
+## Releasing
+
+Merging a PR to `main` with exactly one `bump:patch`, `bump:minor` or
+`bump:major` label bumps `manifest.version` in `nextflow.config`, tags the
+release and publishes the container image.
